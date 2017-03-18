@@ -111,7 +111,11 @@
 	    struct sockaddr_in client_addr;
 	    unsigned int long_client_addr;
 	    char mensaje[1024], respuesta[1024], date[80], tamanyo[100];
-	    char *metodo, *uri, *version, *document_root, *document;
+	    
+	    char *metodo,*version, *uri, *document;
+	    char document_root[200]={"/home/p1/sd/sd1"};
+	    
+	    
 	    int n, recibidos,enviados,size;
 	    FILE *asset;
       
@@ -162,13 +166,19 @@
 			mensaje[recibidos] = '\0'; /* pongo el final de cadena */
 			printf("Mensaje [%d]: %s\n\r", recibidos, mensaje); 
 			metodo=strtok(mensaje, " "); /* Comprobamos el metodo HTTP*/ // la funcion strtok divide en tokens el mensaje 
+			
+			printf("Método: %s\n", metodo);
 			uri=strtok(NULL, " ");
+			printf("Uri: %s\n", uri);
 			version=strtok(NULL," ");
+			printf("Version: %s\n", version);
+			
+			
 			
 			if(strcmp(metodo, "GET")==0){
-				strcat(document_root, uri); //anyade un bloque de memoria a otro, aqui anyado la ruta interna del servidor con la externa del cliente
-				printf("%s\n",document_root);
-				     printf("%s\n",uri);
+				strcat(document_root, uri); 
+				//anyade un bloque de memoria a otro, aqui anyado la ruta interna del servidor con la externa del cliente
+		
 				if(strcmp(version,"HTTP/1.1")>=0){
 					asset=fopen(document_root, "r"); //buscamos en la ruta 					
 					if(asset==NULL){ //no lo encontramos
@@ -194,7 +204,13 @@
 						
 					}
 				}
-			
+				else{
+				  
+				  strcat(respuesta, "405, Method Not Allowed\n\r");
+				  
+				}
+				
+				
 			n=strlen(respuesta);
 		enviados = write(socket2, respuesta, n);
 			if (enviados == -1 || enviados < n)
@@ -203,7 +219,7 @@
 				close(listener);
 				
 			}
-			close(socket2);
+			/*close(socket2);*/
 
 		}
 		else{
