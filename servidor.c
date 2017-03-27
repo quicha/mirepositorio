@@ -110,7 +110,7 @@
     void aceptando_conexion(int listener){
 	    struct sockaddr_in client_addr;
 	    unsigned int long_client_addr;
-	    char mensaje[1024], respuesta[1024], date[80], tamanyo[100];
+	    char mensaje[1024], respuesta[1024]="\n\r", date[80], tamanyo[100];
 	    
 	    char *metodo,*version, *uri, *document;
 	    char document_root[200]={"/home/p1/sd/sd1"};
@@ -182,11 +182,14 @@
 				if(strcmp(version,"HTTP/1.1")>=0){
 					asset=fopen(document_root, "r"); //buscamos en la ruta 					
 					if(asset==NULL){ //no lo encontramos
+						
 						strcpy(respuesta, "HTTP/1.1 404 not found\n\r");
 						
 					}
 					else{	//lo encontramos			 
+						
 						strcat(respuesta, "HTTP/1.1 200 OK\n\r");
+						strcat(respuesta, "\n\r");
 						fseek(asset,0L,SEEK_END);
 						size=ftell(asset);
 						sprintf(tamanyo,"%d",size);
@@ -213,13 +216,14 @@
 				
 			n=strlen(respuesta);
 		enviados = write(socket2, respuesta, n);
+		mensaje[recibidos] = '\0';
 			if (enviados == -1 || enviados < n)
 			{
 				fprintf(stderr, "Error enviando la respuesta (%d)\n\r",enviados);
 				close(listener);
 				
 			}
-			/*close(socket2);*/
+			close(socket2);
 
 		}
 		else{
