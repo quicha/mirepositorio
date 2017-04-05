@@ -8,8 +8,12 @@
   #include <sys/types.h>
   #include <stdlib.h>
   #include <unistd.h>
-  #include <time.h>
+  #include <time.h> 
+  #include <sys/stat.h>
 
+  
+  
+  //FUNCIONES PREVIAS//
 
 int abrir_socket();
 
@@ -22,6 +26,9 @@ int escuchando(int, int);
 
 int main (int argc, char *argv[])
 {  
+  
+  //DECLARACIÓN E INICIALIZACIÓN DE VARIABLES
+ 
 	int puerto=8880;
 	char mensaje[1024], date[80], tamanyo[100];
 	struct sockaddr_in dir_servidor, dir_cliente;
@@ -31,12 +38,10 @@ int main (int argc, char *argv[])
 	int proceso,i;
 	time_t tiempo;
 	struct tm *tm1; 
-	
  	char respuesta[1024]="\n\r";
 	FILE *archivoconf, *asset;
 	char *metodo, *version,*document,*document_root, *uri;
         int topeclientes=10;
-	
 	document_root=malloc(1024);
 	strcpy(document_root,"/home/p1/sd/sd1");
 	uri=malloc(1024);
@@ -111,7 +116,7 @@ int main (int argc, char *argv[])
 		almacen=strtok(linea," ");
 		if(strcmp(almacen, "DocumentRoot")==0){
 		  almacen=strtok(NULL,"\n");
-		  printf("Document_root:%s\n\r",almacen);
+		/*  printf("Document_root:%s\n\r",almacen);*/
 		  strcpy(document_root,almacen);
 		}else if(strcmp(almacen, "Listen")==0){
 		  almacen=strtok(NULL,"\n");
@@ -123,7 +128,7 @@ int main (int argc, char *argv[])
 		}
 		else if(strcmp(almacen, "DirectoryIndex")==0){
 		  almacen=strtok(NULL,"\n");
-		  printf("Document_root:%s\n\r",almacen);
+		 /* printf("Uri:%s\n\r",almacen);*/
 		  strcpy(uri,almacen);
 		}
 	      }
@@ -138,19 +143,19 @@ int main (int argc, char *argv[])
 	    }
 	    }
 	}
-	/**** Paso 1: Abrir el socket ****/
-
+	//APERTURA DEL SOCKET
+	
 	listener = abrir_socket();
 
-	/**** Paso 2: Establecer la dirección (puerto) de escucha ****/
+	//ESTABLECIENDO LA DIRECCIÓN DE ESCUCHA 
 
 	enlazar_a_puerto(listener,puerto); 
 
-	/**** Paso 3: Preparar el servidor para escuchar ****/
+	//PREPARANDO AL SERVIDOR PARA ESCUCHAR
 
 	escuchando(listener,topeclientes);
 
-	/**** Paso 4: Esperar conexiones ****/
+	//ESPERA DE CONEXIONES
 
 
 	while (1)
@@ -159,27 +164,29 @@ int main (int argc, char *argv[])
 		long_dir_cliente = sizeof (dir_cliente);
 		socket2 = accept (listener, (struct sockaddr *)&dir_cliente, &long_dir_cliente);
 		/* s2 es el socket para comunicarse con el cliente */
-		/* s puede seguir siendo usado para comunicarse con otros clientes */
+		
 		if (socket2 == -1)
 		{
 			break; /* salir del bucle */
 		}
-		/* crear un nuevo proceso para que se pueda atender varias peticiones en paralelo */
+		/* Creamos un nuevo proceso para que se pueda atender varias peticiones en paralelo */
 		proceso = fork();
 		if (proceso == -1) exit(1);
-		if (proceso == 0) /* soy el hijo */
+		if (proceso == 0) //SOY EL HIJO
 		{
-			close(listener); /* el hijo no necesita el socket general */
-
-			/**** Paso 5: Leer el mensaje ****/
+			close(listener); //EL HIJO YA NO NECESITA DEL SOCKET GENERAL
 			
 
+			//LECTURA Y EXTRACCIÓN DE LOS PARÁMETROS DEL MENSAJE
+			
+			
 			n = sizeof(mensaje);
 			recibidos = read(socket2, mensaje, n);
+			          //POSIBLE ERROR DE LECTURA 
 			if (recibidos == -1)
 			{
 				fprintf(stderr, "Error de lectura del mensaje\n\r"); //strcat lo que hace es concatenar y va guardando el resultado en respuesta
-				    strcat(respuesta,"HTTP/1.1 500 Internal Server Error\n");
+				            strcat(respuesta,"HTTP/1.1 500 Internal Server Error\n");
 					    strcat(respuesta, "Connection: close\n\r");
 					    strcat(respuesta, "Content-Length: 96");
 					    strcat(respuesta, "\n\r");
@@ -192,8 +199,7 @@ int main (int argc, char *argv[])
 					    strcat(respuesta, "\n\r");
 					    strcat(respuesta, "<html> <title>Error 500</title>\n<h1> Error 500: Error Interno. </h1> </html>");
 					    n = strlen(respuesta); //calcula el numero de caracteres 
-			
-			enviados = write(socket2, respuesta, n); //escribimos la respuesta
+					    enviados = write(socket2, respuesta, n); //escribimos la respuesta
 				    
 			
 			    if (enviados == -1 || enviados < n){
@@ -201,10 +207,10 @@ int main (int argc, char *argv[])
 					    close(listener);
 					   
 				    }
-			close(socket2);
+			  close(socket2);
 			}
 			mensaje[recibidos] = '\0'; /* pongo el final de cadena */
-			/**Anyadido por nosotros*/
+			
 			printf("Mensaje [%d]: %s\n\r", recibidos, mensaje);
 			  
 			  //printf("Split \"%s\"\n", mensaje);
@@ -219,21 +225,24 @@ int main (int argc, char *argv[])
 			  if(uri!=NULL)
 			    version = strtok(NULL, " ");	//version
 
-	printf("%s\n", version);
+			printf("%s\n", version);
 	
-	tiempo = time(NULL);
-	tm1 = localtime(&tiempo);
-	strftime(date, 80, "%H:%M:%S, %A de %B de %Y", tm1);
+			tiempo = time(NULL);
+			tm1 = localtime(&tiempo);
+			strftime(date, 80, "%H:%M:%S, %A de %B de %Y", tm1);
 
 
-	//LLAMADA DE FUNCIONES A LOS DISTINTOS MÉTODOS
+			//ANALISIS DE CADA METODO
 	
 			if(strcmp(metodo,"GET")==0){
-			  
+				struct stat file_stats;
 				strcat(document_root, uri); 
 				//anyade un bloque de memoria a otro, aqui anyado la ruta interna del servidor con la externa del cliente
+				
+				
 		
 				if(strcmp(version,"HTTP/1.1")>=0){
+				  
 					asset=fopen(document_root, "r"); //buscamos en la ruta 	
 					/*printf("Document_root: %s\n", document_root);*/
 					if(asset==NULL){ //no lo encontramos
@@ -250,13 +259,13 @@ int main (int argc, char *argv[])
 					    strcat(respuesta, "\n\r");
 					    strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
 					    strcat(respuesta, "\n\r");
-					    strcat(respuesta, "<html> <title>Error 404</title>\n<h1> Error 404: Archivo no encontrado en el servidor </h1> </html>");
+					    strcat(respuesta, "<html> <title>Error 404</title>\n<h1> 404 ERROR: File not found </h1> </html>");
 						
 					}
 					else{	//lo encontramos			 
 						
 						strcat(respuesta, "HTTP/1.1 200 OK\n\r");
-						strcat(respuesta, "\n\r");
+						//strcat(respuesta, "\n\r");
 						fseek(asset,0L,SEEK_END);
 						size=ftell(asset);
 						sprintf(tamanyo,"%d",size);
@@ -275,6 +284,8 @@ int main (int argc, char *argv[])
 						strcat(respuesta, "Date: ");
 						strcat(respuesta, date);
 						strcat(respuesta, "\n\r");
+						strcat(respuesta, "Last-Modified: ");
+						strcat(respuesta, ctime(&file_stats.st_mtime));
 						strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
 strcat(respuesta,"\n\r");
 
@@ -304,7 +315,7 @@ strcat(respuesta,"\n\r");
 				  
 				}
 				
-				
+		/*		
 			n=strlen(respuesta);
 		enviados = write(socket2, respuesta, n);
 		mensaje[recibidos] = '\0';
@@ -314,8 +325,9 @@ strcat(respuesta,"\n\r");
 				close(listener);
 				
 			}
-			close(socket2);
+			close(socket2);*/
 			}else if(strcmp(metodo,"HEAD")==0){
+			  struct stat file_stats;
 			  
 			  strcat(document_root, uri);
 				asset=fopen(document_root, "r");
@@ -332,11 +344,11 @@ strcat(respuesta,"\n\r");
 						strcat(respuesta, "\n\r");
 						strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
 						strcat(respuesta, "\n");
-						strcat(respuesta, "<html> <title> Error 404</title>\n<h1> Error 404: Archivo no encontrado en el servidor  </h1> \n O a lo mejor no queriamos que lo encontraras... </html>");
+						strcat(respuesta, "<html> <title> Error 404</title>\n<h1> 404 ERROR: File not found  </h1> \n O a lo mejor no queriamos que lo encontraras... </html>");
 					}
 					else{
-					        printf("Entrando ok\n");
-						strcpy(respuesta, "HTTP/1.1 200 OK\n");
+					      
+						strcpy(respuesta, "HTTP/1.1 200 OK\n\r");
 						strcat(respuesta, "Connection: close\n\r");
 						strcat(respuesta, "Content-Length: 0");
 						strcat(respuesta, "\n\r");
@@ -345,6 +357,8 @@ strcat(respuesta,"\n\r");
 						strcat(respuesta, "Date: ");
 						strcat(respuesta, date);
 						strcat(respuesta, "\n\r");
+						strcat(respuesta, "Last-Modified: ");
+						strcat(respuesta, ctime(&file_stats.st_mtime));
 						strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
 						strcat(respuesta, "\n");
 					}
@@ -368,15 +382,14 @@ strcat(respuesta,"\n\r");
 			  
 			  
 			}else if(strcmp(metodo,"DELETE")==0){
-			 
 			  
-			  
+			  struct stat file_stats;
 			  int aux;
-				aux=-1;
-				char name[strlen(uri)];
-				strcat(document_root, uri);
+			  aux=-1;
+			  char name[strlen(uri)];
+			  strcat(document_root, uri);
 				/*Operamos para el metodo DELETE*/
-				if(strcmp(version,"HTTP/1.1")>=0){
+			    if(strcmp(version,"HTTP/1.1")>=0){
 					aux=remove(document_root);
 					if(aux!=0){
 						strcat(respuesta,"HTTP/1.1 404 not found\n");
@@ -389,9 +402,9 @@ strcat(respuesta,"\n\r");
 						strcat(respuesta, date);
 						strcat(respuesta, "\n\r");
 						strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
-						strcat(respuesta, "<html> <title> Error 404</title>\n<h1> Error 404: Archivo no encontrado en el servidor  </h1> \n O a lo mejor no queriamos que lo encontraras... </html>");
+						strcat(respuesta, "<html> <title> Error 404</title>\n<h1> 404 ERROR: File not found </h1> \n O a lo mejor no queriamos que lo encontraras... </html>");
 					}else{
-						strcat(respuesta,"HTTP/1.1 200 OK\n");
+						strcat(respuesta,"HTTP/1.1 200 OK\n\r");
 						strcat(respuesta, "Connection: close\n\r");
 						strcat(respuesta, "Content-Length: 0");
 						strcat(respuesta, "\n\r");
@@ -400,6 +413,8 @@ strcat(respuesta,"\n\r");
 						strcat(respuesta, "Date: ");
 						strcat(respuesta, date);
 						strcat(respuesta, "\n\r");
+						strcat(respuesta, "Last-Modified: ");
+						strcat(respuesta, ctime(&file_stats.st_mtime));
 						strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
 					}
 				}else{
@@ -413,21 +428,19 @@ strcat(respuesta,"\n\r");
 					strcat(respuesta, date);
 					strcat(respuesta, "\n\r");
 					strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
-					strcat(respuesta, "<html> <title>  Error 505 </title>\n<h1> Error 505: Version De HTTP no soportada. </h1> </html>");
+					strcat(respuesta, "<html> <title>  Error 505 </title>\n<h1> 404 ERROR: File not found </h1> </html>");
 } 
 			  
 			  
 			  
 			}else if(strcmp(metodo,"PUT")==0){
-			
 			  
-			  
-			  
-			  	strcat(document_root, uri);
+			  struct stat file_stats;
+			  strcat(document_root, uri);
 				
 				/*Operamos para el metodo PUT*/
 				if(strcmp(version,"HTTP/1.1")>=0){
-					asset=fopen(document_root, "w");
+					asset=fopen(document_root, "w"); //lo abrimos con el permiso de escritura
 					
 					if(asset==NULL){
 						strcat(respuesta,"HTTP/1.1 403 Forbidden\n");
@@ -488,6 +501,7 @@ strcat(respuesta,"\n\r");
 				strcat(respuesta, "Date: ");
 				strcat(respuesta, date);
 				strcat(respuesta, "\n\r");
+			
 				strcat(respuesta, "Cache-control: max-age=0, no-cache\n\r");
 strcat(respuesta,"<html> <title>  Error 405 </title>\n<h1> Error 405: Método no permitido. </h1> </html>");
 			}
@@ -527,43 +541,6 @@ strcat(respuesta,"<html> <title>  Error 405 </title>\n<h1> Error 405: Método no
 
 
 
-/** metodo para leer el fichero de configuracion */
-/*
-void leerConfig(char* filename){		
-  FILE * fichero;
-  char cadena[100];
-  fichero = fopen(filename,"r");
-  
-  if(fichero==NULL){
-    printf("ERROR al abrir fichero\nAnyadir envio de ERROR\n");
-  }else{
-    if( fgets(cadena, 100 , fichero) != NULL ){
-      maxCliente=atoi(cadena);
-      if( fgets(cadena, 100 , fichero) != NULL )
-	strcpy(uri,cadena);
-    }
-  }
-  if(fichero!=NULL)
-    fclose(fichero);
-}*/
-
-/*int enviar(int socket2,char* respuesta, int listener){
-  int n,enviados;
- 	n = strlen(respuesta);
-	printf("Enviar respuesta [%d bytes]: %s\n\r", n, respuesta);
-	enviados = write(socket2, respuesta, n);//le envia al cliente lo que escribe en el socket
-	printf("Numero de bytes enviados: %d\n", enviados);
-
-	if (enviados == -1 || enviados < n){
-		fprintf(stderr, "Error enviando la respuesta (%d)\n\r",enviados);
-		close(listener);
-		return 1;
-	}
-
-	printf("Respuesta enviada\n\r");
- 
-}*/
-
 
 int abrir_socket(){
 
@@ -601,13 +578,13 @@ void enlazar_a_puerto(int listener, int puerto){
 
 int escuchando( int listener, int numero){
   
-    int c= listen(listener,numero);
+	  int c= listen(listener,numero);
     
-      if(c==-1){
-	fprintf(stderr,"No es posible escuchar en ese puerto\n\r"); //cliente 11
-	close(listener);
-	return 1;
-    }
+	  if(c==-1){
+	      fprintf(stderr,"No es posible escuchar en ese puerto\n\r"); //cliente 11
+	      close(listener);
+	      return 1;
+	  }
 	    
 	  printf("Enlazado a puerto\n");
 }
